@@ -1,0 +1,26 @@
+{
+  "global": {
+    "mlflowTrackingUri": "http://localhost:5000",
+    "kongGatewayBaseUrl": "http://localhost:8000"
+  },
+  "domainDetails": {
+    "mobile_money": {
+      "mlflowVectorizerModelName": "mobile_money_transaction_vectorizer",
+      "modelStage": "production",
+      "onnxFileSubPathWithinModelDir": "model.onnx",
+      "scorerApiEndpointPath": "/mobile_money/score_vector"
+    },
+    "ecommerce": {
+      "mlflowVectorizerModelName": "ecommerce_transaction_vectorizer",
+      "modelStage": "production",
+      "onnxFileSubPathWithinModelDir": "model.onnx",
+      "scorerApiEndpointPath": "/ecommerce/score_vector"
+    },
+    "bank": {
+      "mlflowVectorizerModelName": "bank_transaction_vectorizer",
+      "modelStage": "production",
+      "onnxFileSubPathWithinModelDir": "model.onnx",
+      "scorerApiEndpointPath": "/bank/score_vector"
+    }
+  }
+}

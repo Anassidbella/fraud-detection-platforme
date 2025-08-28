@@ -1,0 +1,39 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Java / Maven
+.idea/
+*.iml
+target/
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# Large files & documents
+*.mp4
+*.docx
+*.pdf
+*.rar
+*.doc
+*.zip
+logs/
+# Log files
+*.log
+*.png
+rapport.txt
+test_stuff.txt
+updates.txt
+
+gant.py
+class.md
+feature_names.txt
+features_temp.npy
+genrator.py
+labels_temp.csv
+test.py
+vectors_temp.npy
+Architecture Hybride Privacy-First.txt

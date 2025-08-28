@@ -1,0 +1,31 @@
+{
+  "domain": "bank",
+  "field_groups": [
+    {
+      "label": "Core Transaction Details",
+      "fields": [
+        { "id": "transactionAmount", "label": "Transaction Amount", "type": "number" },
+        { "id": "transactionType", "label": "Transaction Type", "type": "string" },
+        { "id": "currency", "label": "Currency", "type": "string" }
+      ]
+    },
+    {
+      "label": "User & Device Context",
+      "fields": [
+        { "id": "clientContext.accountAgeDays", "label": "Account Age (Days)", "type": "number" },
+        { "id": "clientContext.avgTxnAmtForUser", "label": "User's Avg Transaction Amount", "type": "number" },
+        { "id": "clientContext.isNewBeneficiary", "label": "Is New Beneficiary", "type": "boolean" },
+        { "id": "clientContext.isNewDevice", "label": "Is New Device", "type": "boolean" },
+        { "id": "clientContext.isUsingVpnProxy", "label": "Is Using VPN/Proxy", "type": "boolean" }
+      ]
+    },
+    {
+      "label": "SDK & Model Calculated Data",
+      "fields": [
+        { "id": "mlScore", "label": "ML Anomaly Score", "type": "number" },
+        { "id": "clientContext.hourOfDay", "label": "Hour of the Day (0-23)", "type": "number", "operatorSet": "hour" },
+        { "id": "preprocessed.amount_vs_user_avg_ratio", "label": "Amount Deviation from Average", "type": "number" }
+      ]
+    }
+  ]
+}

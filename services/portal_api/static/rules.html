@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Advanced Rule Management</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <style>
+        body { background-color: #f8f9fa; }
+        .rule { display: flex; justify-content: space-between; align-items: center; padding: 0.75rem 0; border-bottom: 1px solid #dee2e6; }
+        .rule:last-child { border-bottom: none; }
+    </style>
+</head>
+<body>
+
+    <main id="app-section" class="container py-5" style="display: none;">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1>Rule Management Portal</h1>
+            <button id="logout-btn" class="btn btn-outline-danger">Logout</button>
+        </div>
+
+        <div class="card"><div class="card-header">Your Rules</div><div class="card-body"><div id="rules-list"></div></div></div>
+        <hr class="my-5">
+
+        <div class="card">
+            <div class="card-header"><h3 id="editor-title" class="mb-0">Add New Rule</h3></div>
+            <div class="card-body">
+                <form id="rule-form">
+                    <input type="hidden" id="rule-id-input">
+                    <div class="row">
+                        <div class="col-md-6 mb-3"><label for="ruleId" class="form-label">Rule ID</label><input type="text" class="form-control" id="ruleId" required></div>
+                        <div class="col-md-6 mb-3">
+                            <label for="priority" class="form-label">Priority</label>
+                            <select class="form-select" id="priority" required>
+                                <option value="1">1 (Highest)</option>
+                                <option value="2">2 (High)</option>
+                                <option value="3" selected>3 (Normal)</option>
+                                <option value="4">4 (Low)</option>
+                                <option value="5">5 (Lowest)</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="mb-3"><label for="description" class="form-label">Description</label><input type="text" class="form-control" id="description" required></div>
+
+                    <div class="d-flex justify-content-between align-items-center mt-4">
+                        <h5>Conditions (all conditions must be true)</h5>
+                        <div><button type="button" id="add-condition-btn" class="btn btn-sm btn-success"><i class="bi bi-plus-circle"></i> Add Condition</button></div>
+                    </div>
+                    <div id="conditions-container" class="vstack gap-3 mt-2"></div>
+                    
+                    <h5 class="mt-4">Action</h5>
+                    <div class="row">
+                        <div class="col-md-6 mb-3"><label for="action-type" class="form-label">Action Type</label><select id="action-type" class="form-select" required></select></div>
+                        <!-- THIS IS THE CONTAINER FOR THE DYNAMIC ACTION VALUE INPUT -->
+                        <div class="col-md-6 mb-3" id="action-value-container">
+                            <label for="action-value" class="form-label">Action Value</label>
+                            <select id="action-value" class="form-select" required></select>
+                        </div>
+                    </div>
+
+                    <div class="mt-4"><button type="submit" class="btn btn-primary">Save Rule</button><button type="button" id="cancel-edit-btn" class="btn btn-secondary" style="display: none;">Cancel Edit</button></div>
+                </form>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        let ruleSchema = null;
+        const conditionsContainer = document.getElementById('conditions-container');
+        const addConditionBtn = document.getElementById('add-condition-btn');
+        const ruleForm = document.getElementById('rule-form');
+
+        const createClauseHTML = (index) => `
+            <div class="row align-items-center border rounded p-2 bg-light clause-row">
+                <div class="col-md-4 mb-2 mb-md-0"><label class="form-label small">Field</label><select class="form-select condition-field" data-index="${index}" required></select></div>
+                <div class="col-md-3 mb-2 mb-md-0"><label class="form-label small">Operator</label><select class="form-select condition-operator" data-index="${index}" required></select></div>
+                <div class="col-md-4 mb-2 mb-md-0"><label class="form-label small">Value(s)</label><div class="condition-value-container d-flex align-items-center gap-2" data-index="${index}"></div></div>
+                <div class="col-md-1 text-end">${index > 0 ? '<button type="button" class="btn btn-sm btn-outline-danger remove-condition-btn"><i class="bi bi-trash"></i></button>' : ''}</div>
+            </div>`;
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            try {
+                const schemaResponse = await fetch('/rules/schema');
+                if (!schemaResponse.ok) throw new Error('Failed to fetch schema.');
+                ruleSchema = await schemaResponse.json();
+                
+                addNewClause();
+                populateActionDropdowns();
+                updateActionValueUI(); // Call it once on init
+                await loadAndDisplayRules();
+                
+                document.getElementById('app-section').style.display = 'block';
+            } catch (error) {
+                console.error("Auth/Init failed:", error.message);
+                document.body.innerHTML = `<div class="d-flex align-items-center justify-content-center vh-100"><div class="text-center"><h1 class="display-1 fw-bold">401</h1><p class="fs-3 text-danger">Access Denied</p><p class="lead">You must be logged in to view this page.</p><a href="/login-ui" class="btn btn-primary">Go to Login</a></div></div>`;
+            }
+        });
+
+        function addNewClause(clauseData = null) {
+            const index = conditionsContainer.children.length;
+            const clauseWrapper = document.createElement('div');
+            clauseWrapper.innerHTML = createClauseHTML(index);
+            conditionsContainer.appendChild(clauseWrapper);
+            
+            const newFieldSelect = clauseWrapper.querySelector('.condition-field');
+            const newOperatorSelect = clauseWrapper.querySelector('.condition-operator');
+            const removeBtn = clauseWrapper.querySelector('.remove-condition-btn');
+
+            populateFieldDropdown(newFieldSelect);
+            
+            const updateUI = () => updateConditionUIForRow(clauseWrapper);
+            newFieldSelect.addEventListener('change', updateUI);
+            newOperatorSelect.addEventListener('change', updateUI);
+            
+            if (clauseData) newFieldSelect.value = clauseData.field;
+            updateUI();
+            
+            if (clauseData) {
+                newOperatorSelect.value = clauseData.operator;
+                updateUI();
+                const value = clauseData.value;
+                if (Array.isArray(value)) {
+                    clauseWrapper.querySelector('.condition-value-1').value = value[0];
+                    clauseWrapper.querySelector('.condition-value-2').value = value[1];
+                } else {
+                    clauseWrapper.querySelector('.condition-value').value = String(value);
+                }
+            }
+            if(removeBtn) removeBtn.addEventListener('click', () => clauseWrapper.remove());
+        }
+
+        function populateFieldDropdown(selectElement) {
+            selectElement.innerHTML = '';
+            ruleSchema.field_groups.forEach(group => {
+                const optgroup = document.createElement('optgroup');
+                optgroup.label = group.label;
+                group.fields.forEach(field => {
+                    const option = document.createElement('option');
+                    option.value = field.id;
+                    option.textContent = field.label;
+                    option.dataset.type = field.type;
+                    if (field.operatorSet) option.dataset.operatorSet = field.operatorSet;
+                    optgroup.appendChild(option);
+                });
+                selectElement.appendChild(optgroup);
+            });
+        }
+        
+        function updateConditionUIForRow(rowElement) {
+            const fieldSelect = rowElement.querySelector('.condition-field');
+            const operatorSelect = rowElement.querySelector('.condition-operator');
+            const valueContainer = rowElement.querySelector('.condition-value-container');
+            const selectedFieldOption = fieldSelect.options[fieldSelect.selectedIndex];
+
+            if (!selectedFieldOption) return;
+
+            const fieldId = selectedFieldOption.value;
+            const fieldType = selectedFieldOption.dataset.type;
+            const operatorSetKey = selectedFieldOption.dataset.operatorSet || fieldType;
+            const fieldDefinition = ruleSchema.fields.find(f => f.id === fieldId);
+
+            const currentOperatorVal = operatorSelect.value;
+            operatorSelect.innerHTML = (ruleSchema.operators[operatorSetKey] || []).map(op => `<option value="${op.id}" ${op.id === currentOperatorVal ? 'selected' : ''}>${op.label}</option>`).join('');
+            
+            valueContainer.innerHTML = '';
+            const selectedOperator = operatorSelect.value;
+
+            const createInput = (id, type = 'text') => {
+                let input;
+                if (type === 'boolean') {
+                    input = document.createElement('select'); input.innerHTML = `<option value="true">True</option><option value="false">False</option>`;
+                } else if (type === 'string_options' && fieldDefinition?.options) {
+                    input = document.createElement('select'); input.innerHTML = fieldDefinition.options.map(opt => `<option value="${opt}">${opt}</option>`).join('');
+                } else {
+                    input = document.createElement('input'); input.type = type === 'number' ? 'number' : 'text'; if (type === 'number') input.step = 'any';
+                }
+                input.id = id; input.className = 'form-control'; input.required = true;
+                return input;
+            };
+
+            if (selectedOperator?.includes('BETWEEN')) {
+                valueContainer.appendChild(createInput('condition-value-1', fieldType)).classList.add('condition-value-1');
+                const andText = document.createElement('span'); andText.textContent = 'and'; andText.className = 'px-2';
+                valueContainer.appendChild(andText);
+                valueContainer.appendChild(createInput('condition-value-2', fieldType)).classList.add('condition-value-2');
+            } else {
+                const inputType = fieldType === 'string' && fieldDefinition?.options ? 'string_options' : fieldType;
+                valueContainer.appendChild(createInput('condition-value', inputType)).classList.add('condition-value');
+            }
+        }
+        
+        function populateActionDropdowns() {
+            document.getElementById('action-type').innerHTML = ruleSchema.actions.map(a => `<option value="${a.id}">${a.label}</option>`).join('');
+        }
+
+        // --- THIS IS THE NEW, CORRECTED UI LOGIC ---
+        function updateActionValueUI(valueToSet = null) {
+            const actionTypeSelect = document.getElementById('action-type');
+            const actionValueContainer = document.getElementById('action-value-container');
+            const selectedAction = ruleSchema.actions.find(a => a.id === actionTypeSelect.value);
+
+            if (!selectedAction) return;
+
+            actionValueContainer.innerHTML = `<label for="action-value" class="form-label">Action Value</label>`;
+
+            if (selectedAction.options) {
+                const select = document.createElement('select');
+                select.id = 'action-value';
+                select.className = 'form-select';
+                select.required = true;
+                select.innerHTML = selectedAction.options.map(opt => `<option value="${opt}">${opt}</option>`).join('');
+                if (valueToSet) select.value = valueToSet;
+                actionValueContainer.appendChild(select);
+            } else {
+                const input = document.createElement('input');
+                input.id = 'action-value';
+                input.className = 'form-control';
+                input.required = true;
+                input.type = selectedAction.valueType === 'number' ? 'number' : 'text';
+                if (input.type === 'number') input.step = 'any';
+                input.placeholder = selectedAction.placeholder || '';
+                if (valueToSet) input.value = valueToSet;
+                actionValueContainer.appendChild(input);
+            }
+        }
+
+        document.getElementById('action-type').addEventListener('change', () => updateActionValueUI());
+
+        ruleForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const clauses = [];
+            document.querySelectorAll('.clause-row').forEach(row => {
+                const fieldSelect = row.querySelector('.condition-field');
+                const operatorSelect = row.querySelector('.condition-operator');
+                const fieldType = fieldSelect.options[fieldSelect.selectedIndex].dataset.type;
+                const operator = operatorSelect.value;
+                let value;
+
+                if (operator.includes('BETWEEN')) {
+                    const val1 = row.querySelector('.condition-value-1').value;
+                    const val2 = row.querySelector('.condition-value-2').value;
+                    value = fieldType === 'number' ? [parseFloat(val1), parseFloat(val2)] : [val1, val2];
+                } else {
+                    const val = row.querySelector('.condition-value').value;
+                    if (fieldType === 'number') value = parseFloat(val);
+                    else if (fieldType === 'boolean') value = (val === 'true');
+                    else value = val;
+                }
+                clauses.push({ field: fieldSelect.value, operator: operator, value: value });
+            });
+
+            const actionType = document.getElementById('action-type').value;
+            const actionValueEl = document.getElementById('action-value');
+            let actionValue = actionValueEl.value;
+
+            const selectedActionSchema = ruleSchema.actions.find(a => a.id === actionType);
+            if (selectedActionSchema && selectedActionSchema.valueType === 'number') {
+                actionValue = parseFloat(actionValue);
+            }
+
+            const ruleData = {
+                ruleId: document.getElementById('ruleId').value,
+                description: document.getElementById('description').value,
+                isEnabled: true,
+                priority: parseInt(document.getElementById('priority').value, 10),
+                conditions: { logicalOperator: "AND", clauses: clauses },
+                actions: [{ type: actionType, value: actionValue }]
+            };
+            
+            const url = document.getElementById('rule-id-input').value ? `/rules/${document.getElementById('rule-id-input').value}` : '/rules';
+            const method = document.getElementById('rule-id-input').value ? 'PUT' : 'POST';
+            const response = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(ruleData) });
+            
+            if (response.ok) { resetForm(); await loadAndDisplayRules(); } 
+            else { const error = await response.json(); alert(`Error: ${error.detail}`); }
+        });
+        
+        async function loadAndDisplayRules() {
+            const response = await fetch('/rules');
+            const rules = await response.json();
+            const rulesList = document.getElementById('rules-list');
+            rulesList.innerHTML = '';
+            rules.sort((a, b) => a.priority - b.priority);
+
+            if (rules.length === 0) {
+                rulesList.innerHTML = '<p class="text-center text-muted">No rules found. Add one using the editor below!</p>';
+            } else {
+                rules.forEach(rule => {
+                    const ruleElement = document.createElement('div');
+                    ruleElement.className = 'rule';
+                    ruleElement.innerHTML = `
+                        <div>
+                            <strong>${rule.ruleId}</strong> (Priority: ${rule.priority})<br>
+                            <small class="text-muted">${rule.description}</small>
+                        </div>
+                        <div>
+                            <button class="btn btn-sm btn-secondary me-2" onclick="handleEdit('${rule.ruleId}')">Edit</button>
+                            <button class="btn btn-sm btn-danger" onclick="handleDelete('${rule.ruleId}')">Delete</button>
+                        </div>`;
+                    rulesList.appendChild(ruleElement);
+                });
+            }
+        }
+        
+        async function handleEdit(ruleId) {
+            const response = await fetch('/rules');
+            const rules = await response.json();
+            const ruleToEdit = rules.find(r => r.ruleId === ruleId);
+            if (!ruleToEdit) return;
+
+            resetForm();
+            
+            document.getElementById('editor-title').textContent = 'Edit Rule';
+            document.getElementById('rule-id-input').value = ruleToEdit.ruleId;
+            document.getElementById('ruleId').value = ruleToEdit.ruleId;
+            document.getElementById('description').value = ruleToEdit.description;
+            document.getElementById('priority').value = ruleToEdit.priority;
+            
+            conditionsContainer.innerHTML = '';
+            ruleToEdit.conditions.clauses.forEach(clause => addNewClause(clause));
+            
+            const actionTypeSelect = document.getElementById('action-type');
+            actionTypeSelect.value = ruleToEdit.actions[0].type;
+            // IMPORTANT: Update the UI to show the correct input with the correct value
+            updateActionValueUI(ruleToEdit.actions[0].value);
+            
+            document.getElementById('cancel-edit-btn').style.display = 'inline-block';
+            window.scrollTo(0, document.body.scrollHeight);
+        }
+        
+        async function handleDelete(ruleId) {
+            if (!confirm(`Are you sure you want to delete the rule "${ruleId}"?`)) return;
+            const response = await fetch(`/rules/${ruleId}`, { method: 'DELETE' });
+            if (response.ok) await loadAndDisplayRules();
+            else alert('Failed to delete rule.');
+        }
+        
+        function resetForm() {
+            ruleForm.reset();
+            document.getElementById('editor-title').textContent = 'Add New Rule';
+            document.getElementById('rule-id-input').value = ''; 
+            document.getElementById('cancel-edit-btn').style.display = 'none';
+            conditionsContainer.innerHTML = '';
+            addNewClause();
+            updateActionValueUI();
+        }
+
+        document.getElementById('cancel-edit-btn').addEventListener('click', resetForm);
+        document.getElementById('logout-btn').addEventListener('click', async () => {
+            await fetch('/logout', { method: 'POST' });
+            window.location.href = '/login-ui';
+        });
+    </script>
+</body>
+</html>

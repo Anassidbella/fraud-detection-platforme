@@ -1,0 +1,31 @@
+{
+  "domain": "mobile_money",
+  "field_groups": [
+    {
+      "label": "Core Transaction Details",
+      "fields": [
+        { "id": "transactionAmount", "label": "Transaction Amount", "type": "number" },
+        { "id": "transactionType", "label": "Transaction Type", "type": "string", "options": ["cash_out", "send_money", "pay_bill", "buy_airtime", "merchant_payment", "cash_in", "receive_money"] },
+        { "id": "balanceBefore", "label": "Balance Before Transaction", "type": "number" }
+      ]
+    },
+    {
+      "label": "Behavioral & User Context",
+      "fields": [
+        { "id": "clientContext.velocityTxnCount1h", "label": "User's Transaction Count (Last 1h)", "type": "number" },
+        { "id": "clientContext.isNewDevice", "label": "Is a New Device for User", "type": "boolean" },
+        { "id": "clientContext.isForeignLocation", "label": "Is a Foreign Location Transaction", "type": "boolean" }
+      ]
+    },
+    {
+      "label": "SDK & Model Calculated Data",
+      "fields": [
+        { "id": "mlScore", "label": "ML Anomaly Score", "type": "number" },
+        { "id": "preprocessed.is_night", "label": "Is a Night Transaction", "type": "boolean" },
+        { "id": "preprocessed.balance_after", "label": "Balance After Transaction", "type": "number" },
+        { "id": "preprocessed.is_account_drain", "label": "Would Nearly Drain Account", "type": "boolean" },
+        { "id": "preprocessed.amount_vs_user_avg_ratio", "label": "Amount vs User Average", "type": "number" }
+      ]
+    }
+  ]
+}

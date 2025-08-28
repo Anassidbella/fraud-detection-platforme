@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fraud Detection SDK - Register</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { background-color: #f8f9fa; }
+        .container { max-width: 600px; }
+        .card { border: none; box-shadow: 0 0.5rem 1rem rgba(0,0,0,.1); }
+        .form-label { font-weight: 500; }
+        #response-area { display: none; }
+        #error-alert { display: none; }
+        #success-alert { display: none; }
+        pre { background-color: #e9ecef; border-radius: 0.25rem; padding: 1rem; }
+    </style>
+</head>
+<body>
+    <div class="container mt-5">
+        <div class="card p-4">
+            <div class="card-body">
+                <h2 class="card-title text-center mb-4">Register for SDK Access</h2>
+                <form id="registration-form">
+                    <!-- NEW: Username and Password fields -->
+                    <div class="mb-3">
+                        <label for="username" class="form-label">Username (Must be an email)</label>
+                        <input type="email" class="form-control" id="username" required placeholder="you@example.com">
+                    </div>
+                    <div class="mb-3">
+                        <label for="password" class="form-label">Password</label>
+                        <input type="password" class="form-control" id="password" required>
+                    </div>
+
+                    <hr class="my-4">
+
+                    <div class="mb-3">
+                        <label for="clientName" class="form-label">Company or Project Name</label>
+                        <input type="text" class="form-control" id="clientName" required placeholder="e.g., My Awesome Shop">
+                    </div>
+                    <div class="mb-3">
+                        <label for="domainName" class="form-label">Select Your Business Domain</label>
+                        <select class="form-select" id="domainName" required>
+                            <option value="ecommerce" selected>E-commerce</option>
+                            <option value="mobile_money">Mobile Money</option>
+                            <option value="bank">Banking</option>
+                        </select>
+                    </div>
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-primary btn-lg">Register & Generate Credentials</button>
+                    </div>
+                </form>
+
+                <!-- NEW: Link to Login Page -->
+                <div class="text-center mt-3">
+                    <p>Already have an account? <a href="/login-ui">Login here</a></p>
+                </div>
+
+                <div class="alert alert-success mt-4" role="alert" id="success-alert"></div>
+                <div class="alert alert-danger mt-4" role="alert" id="error-alert"></div>
+
+                <div id="response-area" class="mt-4">
+                    <hr>
+                    <h4 class="mt-4">Your SDK Credentials</h4>
+                    <p>Success! Save these credentials securely. You will need them for your SDK configuration.</p>
+                    <pre><code id="credentials-output"></code></pre>
+                    <div class="d-grid mt-3">
+                         <button id="download-btn" class="btn btn-success">Download credentials.json</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <footer class="text-center text-muted mt-4">
+            <p>© 2024 Fraud Detection Platform</p>
+        </footer>
+    </div>
+
+    <script>
+        const form = document.getElementById('registration-form');
+        const responseArea = document.getElementById('response-area');
+        const credentialsOutput = document.getElementById('credentials-output');
+        const downloadBtn = document.getElementById('download-btn');
+        const errorAlert = document.getElementById('error-alert');
+        const successAlert = document.getElementById('success-alert'); // New success alert element
+        let credentialsData = {};
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            responseArea.style.display = 'none';
+            errorAlert.style.display = 'none';
+            successAlert.style.display = 'none';
+
+            // Get all form values, including new username and password
+            const clientName = document.getElementById('clientName').value;
+            const domainName = document.getElementById('domainName').value;
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+
+            const defaultRules = [{
+                "ruleId": "DEFAULT_HIGH_VALUE",
+                "description": "Default rule for new clients",
+                "isEnabled": true, "priority": 1,
+                "conditions": { "logicalOperator": "AND", "clauses": [{ "field": "rawInput.transactionAmount", "operator": "GREATER_THAN", "value": 1000 }]},
+                "actions": [{ "type": "SET_DECISION", "value": "REVIEW" }]
+            }];
+
+            try {
+                const response = await fetch('/register', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        client_name: clientName,
+                        domain_name: domainName,
+                        username: username, // Pass the new field
+                        password: password, // Pass the new field
+                        rules: defaultRules
+                    })
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.detail || 'An unknown error occurred.');
+                }
+                
+                // Store data for download button
+                credentialsData = data;
+                
+                // Display the SDK credentials
+                const formattedJson = JSON.stringify(data, null, 2);
+                credentialsOutput.textContent = formattedJson;
+                responseArea.style.display = 'block';
+
+                // Show a clear success message and a link to the login page
+                successAlert.innerHTML = 'Registration Successful! You can now log in. <a href="/login-ui" class="alert-link">Go to Login Page</a>';
+                successAlert.style.display = 'block';
+
+                // Clear the form for the next registration
+                form.reset();
+
+            } catch (error) {
+                errorAlert.textContent = 'Error: ' + error.message;
+                errorAlert.style.display = 'block';
+            }
+        });
+
+        downloadBtn.addEventListener('click', () => {
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(credentialsData, null, 2));
+            const downloadAnchorNode = document.createElement('a');
+            downloadAnchorNode.setAttribute("href", dataStr);
+            downloadAnchorNode.setAttribute("download", "credentials.json");
+            document.body.appendChild(downloadAnchorNode);
+            downloadAnchorNode.click();
+            downloadAnchorNode.remove();
+        });
+    </script>
+</body>
+</html>

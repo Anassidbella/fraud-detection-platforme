@@ -1,0 +1,32 @@
+{
+  "domain": "ecommerce",
+  "field_groups": [
+    {
+      "label": "Core Transaction Details",
+      "fields": [
+        { "id": "transactionAmount", "label": "Transaction Amount", "type": "number" },
+        { "id": "currency", "label": "Currency", "type": "string" },
+        { "id": "itemCount", "label": "Item Count", "type": "number" },
+        { "id": "productCategory", "label": "Product Category", "type": "string" },
+        { "id": "paymentMethod", "label": "Payment Method", "type": "string", "options": ["credit_card", "paypal", "bank_transfer", "crypto"] }
+      ]
+    },
+    {
+      "label": "User & Order Context",
+      "fields": [
+        { "id": "isGuestCheckout", "label": "Is Guest Checkout", "type": "boolean" },
+        { "id": "accountAgeInDays", "label": "Account Age (Days)", "type": "number" },
+        { "id": "emailDomain", "label": "Email Domain", "type": "string" },
+        { "id": "shippingCountry", "label": "Shipping Country", "type": "string" },
+        { "id": "billingCountry", "label": "Billing Country", "type": "string" }
+      ]
+    },
+    {
+      "label": "SDK & Model Calculated Data",
+      "fields": [
+        { "id": "mlScore", "label": "ML Anomaly Score", "type": "number" },
+        { "id": "preprocessed.billingequalsshipping", "label": "Billing Matches Shipping", "type": "boolean" }
+      ]
+    }
+  ]
+}

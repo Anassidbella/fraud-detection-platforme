@@ -1,0 +1,27 @@
+{
+  "operators": {
+    "number": [
+      { "id": "GREATER_THAN", "label": "is greater than" },
+      { "id": "LESS_THAN", "label": "is less than" },
+      { "id": "EQUALS", "label": "is equal to" }
+    ],
+    "string": [
+      { "id": "EQUALS", "label": "is" },
+      { "id": "NOT_EQUALS", "label": "is not" },
+      { "id": "IN_LIST", "label": "is one of" }
+    ],
+    "boolean": [
+      { "id": "EQUALS", "label": "is" }
+    ],
+    "hour": [
+      { "id": "EQUALS", "label": "is at hour" },
+      { "id": "BETWEEN", "label": "is between hours" },
+      { "id": "NOT_BETWEEN", "label": "is not between hours" }
+    ]
+  },
+  "actions": [
+    { "id": "SET_DECISION", "label": "Set Decision To", "valueType": "string", "options": ["ALLOW", "REVIEW", "DENY"] },
+    { "id": "ADD_FLAG", "label": "Add Flag", "valueType": "string", "placeholder": "e.g., LATE_NIGHT_TRANSACTION" },
+    { "id": "ADJUST_ML_SCORE_RELATIVE_POINTS", "label": "Adjust Score by (e.g., -0.2)", "valueType": "number" }
+  ]
+}

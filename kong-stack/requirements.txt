@@ -1,0 +1,34 @@
+# kong-stack/requirements.txt
+
+# --- Original ML & Airflow Dependencies ---
+apache-airflow==2.9.1
+scikit-learn
+pandas
+numpy
+joblib
+mlflow==2.12.1
+boto3
+psycopg2-binary
+skl2onnx
+onnx
+onnxruntime
+xgboost
+python-multipart
+# --- Added for FastAPI, Portal API, and ML Scorers ---
+
+# Core FastAPI web framework and server
+fastapi
+uvicorn[standard]
+
+# For loading .env files
+python-dotenv
+
+# For the Portal API database connection
+sqlalchemy
+
+# For password hashing and JWT token security in the Portal API
+passlib[bcrypt]
+python-jose[cryptography]
+
+# For making HTTP requests from the Portal API to Kong
+httpx
